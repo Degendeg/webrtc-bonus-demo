@@ -1,9 +1,26 @@
+const express = require('express');
 const WebSocket = require('ws');
+const path = require('path');
 
-const server = new WebSocket.Server({ port: 8080 });
+const app = express();
+const port = process.env.PORT || 8080;
+
+app.use(express.static(path.join(__dirname)));
+
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+// Start the HTTP server
+const httpServer = app.listen(port, () => {
+  console.log(`HTTP server running on http://localhost:${port}`);
+});
+
+// WebSocket server for signaling
+const wsServer = new WebSocket.Server({ server: httpServer });
 const peers = new Set();
 
-server.on('connection', socket => {
+wsServer.on('connection', socket => {
   peers.add(socket);
   console.log('New peer connected!');
 
@@ -21,4 +38,4 @@ server.on('connection', socket => {
   });
 });
 
-console.log('Signaling server is running on ws://localhost:8080');
+console.log(`Signaling WebSocket server running on ws://localhost:${port}`);
