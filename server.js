@@ -13,7 +13,7 @@ app.get('/', (req, res) => {
 
 // Start the HTTP server
 const httpServer = app.listen(port, () => {
-  console.log(`HTTP server running on http://localhost:${port}`);
+  console.log(`HTTP server running on ${window.location.origin}:${port}`);
 });
 
 // WebSocket server for signaling
@@ -38,4 +38,4 @@ wsServer.on('connection', socket => {
   });
 });
 
-console.log(`Signaling WebSocket server running on ws://localhost:${port}`);
+console.log(`Signaling WebSocket server running on port: ${port}`);

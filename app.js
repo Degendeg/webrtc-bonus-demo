@@ -5,7 +5,9 @@ const peerConnection = new RTCPeerConnection({
   iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
 });
 
-const signalingServer = new WebSocket('ws://localhost:8080'); // Anslut till signaleringsservern
+const localWs = 'ws://localhost:8080';
+const railwayWs = 'ws://web-rtc-demo-production.up.railway.app:8080'
+const signalingServer = new WebSocket(railwayWs); // Anslut till signaleringsservern
 
 // Hämta lokala media (video och ljud)
 navigator.mediaDevices.getUserMedia({ video: true, audio: true })
