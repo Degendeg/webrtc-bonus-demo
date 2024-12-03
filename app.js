@@ -1,35 +1,32 @@
 const localVideo = document.getElementById('localVideo');
 const remoteVideo = document.getElementById('remoteVideo');
+const signalingServer = new WebSocket('wss://web-rtc-demo-production.up.railway.app:8080');
 
 const peerConnection = new RTCPeerConnection({
   iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
 });
 
-const localWs = 'ws://localhost:8080';
-const railwayWs = 'wss://web-rtc-demo-production.up.railway.app:8080'
-const signalingServer = new WebSocket(railwayWs); // Anslut till signaleringsservern
-
-// Hämta lokala media (video och ljud)
+// Get local media (audio and video)
 navigator.mediaDevices.getUserMedia({ video: true, audio: true })
   .then(stream => {
     localVideo.srcObject = stream;
     stream.getTracks().forEach(track => peerConnection.addTrack(track, stream));
   })
-  .catch(error => console.error('Error accessing media devices.', error));
+  .catch(error => console.error('Error accessing media devices:', error));
 
-// Skicka ICE-kandidater via signaleringsservern
+// Send ICE candidates via signaling server
 peerConnection.onicecandidate = event => {
   if (event.candidate) {
     signalingServer.send(JSON.stringify({ type: 'candidate', candidate: event.candidate }));
   }
 };
 
-// Ta emot inkommande video och ljud
+// Receive remote stream
 peerConnection.ontrack = event => {
   remoteVideo.srcObject = event.streams[0];
 };
 
-// Hantera inkommande meddelanden från signaleringsservern
+// Handle incoming signaling messages
 signalingServer.onmessage = async message => {
   const data = JSON.parse(message.data);
 
@@ -45,9 +42,14 @@ signalingServer.onmessage = async message => {
   }
 };
 
-// Starta anslutning genom att skicka offer
+// Start connection by sending offer (trigger this manually for now)
 async function startCall() {
   const offer = await peerConnection.createOffer();
   await peerConnection.setLocalDescription(offer);
   signalingServer.send(JSON.stringify({ type: 'offer', offer }));
 }
+
+// Start the call automatically when both peers are connected
+signalingServer.onopen = () => {
+  startCall();
+};
