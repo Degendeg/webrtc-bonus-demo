@@ -6,7 +6,7 @@ const peerConnection = new RTCPeerConnection({
 });
 
 const localWs = 'ws://localhost:8080';
-const railwayWs = 'ws://web-rtc-demo-production.up.railway.app:8080'
+const railwayWs = 'wss://web-rtc-demo-production.up.railway.app:8080'
 const signalingServer = new WebSocket(railwayWs); // Anslut till signaleringsservern
 
 // Hämta lokala media (video och ljud)
