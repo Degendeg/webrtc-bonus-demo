@@ -63,6 +63,11 @@
       }
     };
 
+    // Wait for the WebSocket to open before creating the offer
+    signalingServer.onopen = () => {
+      createOffer(); // Now that the WebSocket is open, create the offer
+    };
+
     // Caller side - Initiate the offer
     function createOffer() {
       peerConnection.createOffer()
@@ -76,9 +81,6 @@
           console.error("Error creating offer: ", error);
         });
     }
-
-    // Call the createOffer function to start the connection as the caller
-    createOffer();
   </script>
 </body>
 
