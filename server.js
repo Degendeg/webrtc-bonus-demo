@@ -3,39 +3,32 @@ const WebSocket = require('ws');
 const path = require('path');
 
 const app = express();
-const port = process.env.PORT || 8080;
+const port = process.env.PORT || 3000;
 
-app.use(express.static(path.join(__dirname)));
-
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'index.html'));
-});
+// Serve static files (index.html)
+app.use(express.static(path.join(__dirname, '.')));
 
 // Start the HTTP server
-const httpServer = app.listen(port, () => {
-  console.log('HTTP server running!');
+const server = app.listen(port, () => {
+  console.log(`Server is running on port ${port}`);
 });
 
-// WebSocket server for signaling
-const wsServer = new WebSocket.Server({ server: httpServer });
-const peers = new Set();
+// WebSocket server
+const wss = new WebSocket.Server({ server });
 
-wsServer.on('connection', socket => {
-  peers.add(socket);
-  console.log('New peer connected!');
+wss.on('connection', ws => {
+  console.log('Client connected');
 
-  socket.on('message', message => {
-    for (let peer of peers) {
-      if (peer !== socket) {
-        peer.send(message);
+  ws.on('message', message => {
+    // Broadcast the message to all connected clients except the sender
+    wss.clients.forEach(client => {
+      if (client !== ws && client.readyState === WebSocket.OPEN) {
+        client.send(message);
       }
-    }
+    });
   });
 
-  socket.on('close', () => {
-    peers.delete(socket);
-    console.log('Peer disconnected!');
+  ws.on('close', () => {
+    console.log('Client disconnected');
   });
 });
-
-console.log(`Signaling WebSocket server running on port: ${port}`);

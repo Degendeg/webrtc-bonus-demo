@@ -5,28 +5,57 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>WebRTC Demo</title>
-  <style>
-    video {
-      width: 45%;
-      margin: 2%;
-      border: 1px solid #ddd;
-      box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.1);
-    }
-
-    body {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      flex-wrap: wrap;
-      padding: 20px;
-    }
-  </style>
 </head>
 
 <body>
-  <video id="localVideo" autoplay playsinline muted></video>
+  <h1>WebRTC with WebSockets</h1>
+  <video id="localVideo" autoplay playsinline></video>
   <video id="remoteVideo" autoplay playsinline></video>
-  <script src="app.js"></script>
+
+  <script>
+    const localVideo = document.getElementById('localVideo');
+    const remoteVideo = document.getElementById('remoteVideo');
+    const signalingServer = new WebSocket('ws://' + location.host);
+
+    const peerConnection = new RTCPeerConnection();
+
+    // Stream setup
+    navigator.mediaDevices.getUserMedia({ video: true, audio: false })
+      .then(stream => {
+        localVideo.srcObject = stream;
+        stream.getTracks().forEach(track => peerConnection.addTrack(track, stream));
+      });
+
+    peerConnection.ontrack = event => {
+      remoteVideo.srcObject = event.streams[0];
+    };
+
+    // WebSocket signaling
+    signalingServer.onmessage = async event => {
+      const data = JSON.parse(event.data);
+
+      if (data.offer) {
+        await peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
+        const answer = await peerConnection.createAnswer();
+        await peerConnection.setLocalDescription(answer);
+        signalingServer.send(JSON.stringify({ answer }));
+      }
+
+      if (data.answer) {
+        await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
+      }
+
+      if (data.candidate) {
+        await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
+      }
+    };
+
+    peerConnection.onicecandidate = event => {
+      if (event.candidate) {
+        signalingServer.send(JSON.stringify({ candidate: event.candidate }));
+      }
+    };
+  </script>
 </body>
 
 </html>
