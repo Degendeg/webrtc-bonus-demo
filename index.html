@@ -24,6 +24,9 @@
       .then(stream => {
         localVideo.srcObject = stream;
         stream.getTracks().forEach(track => peerConnection.addTrack(track, stream));
+      })
+      .catch(error => {
+        console.error("Error accessing webcam: ", error);
       });
 
     peerConnection.ontrack = event => {
@@ -35,6 +38,7 @@
       const data = JSON.parse(event.data);
 
       if (data.offer) {
+        // Answerer side: Respond to offer
         await peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
         const answer = await peerConnection.createAnswer();
         await peerConnection.setLocalDescription(answer);
@@ -42,19 +46,39 @@
       }
 
       if (data.answer) {
+        // Caller side: Handle remote answer
         await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
       }
 
       if (data.candidate) {
+        // ICE Candidate exchange
         await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
       }
     };
 
     peerConnection.onicecandidate = event => {
       if (event.candidate) {
+        // Send ICE candidates to the other peer
         signalingServer.send(JSON.stringify({ candidate: event.candidate }));
       }
     };
+
+    // Caller side - Initiate the offer
+    function createOffer() {
+      peerConnection.createOffer()
+        .then(offer => {
+          return peerConnection.setLocalDescription(offer);
+        })
+        .then(() => {
+          signalingServer.send(JSON.stringify({ offer: peerConnection.localDescription }));
+        })
+        .catch(error => {
+          console.error("Error creating offer: ", error);
+        });
+    }
+
+    // Call the createOffer function to start the connection as the caller
+    createOffer();
   </script>
 </body>
 
